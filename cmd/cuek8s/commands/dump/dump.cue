@@ -10,13 +10,13 @@ dump: {
 		format: "json" | *"yaml"
 		kinds: [...string]
 		names: [...string]
-		resources: [...{...}]
+		delivery: _
 	}
 
 	outputs: text: string
 
 	if inputs.format == "json" {
-		outputs: text: json.MarshalStream(_resources)
+		outputs: text: json.Marshal(_resources)
 	}
 
 	if inputs.format == "yaml" {
@@ -24,6 +24,6 @@ dump: {
 	}
 
 	_resources: [
-		for r in inputs.resources if (len(inputs.kinds) < 1 || list.Contains(inputs.kinds, r.kind)) && (len(inputs.names) < 1 || list.Contains(inputs.names, r.metadata.name)) {r},
+		for d in inputs.delivery for r in d.resources if (len(inputs.kinds) < 1 || list.Contains(inputs.kinds, r.kind)) && (len(inputs.names) < 1 || list.Contains(inputs.names, r.metadata.name)) {r},
 	]
 }
