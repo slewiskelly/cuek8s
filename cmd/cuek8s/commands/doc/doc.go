@@ -80,16 +80,20 @@ func textIndex() error {
 		return err
 	}
 
-	return writeTextIndex(os.Stdout, pkgs)
+	return writeTextIndex(stdout, pkgs)
 }
 
 func textPackage(p string, d ...string) error {
+	if pr := filepath.Join(cuek8s.Module, "pkg"); !strings.HasPrefix(p, pr) {
+		p = filepath.Join(pr, p)
+	}
+
 	pkg, err := getPackage(p)
 	if err != nil {
 		return err
 	}
 
-	return writeText(os.Stdout, pkg, d...)
+	return writeText(stdout, pkg, d...)
 }
 
 func loadAll() (Packages, error) {
@@ -104,7 +108,7 @@ func loadAll() (Packages, error) {
 			return nil
 		}
 
-		m, err := filepath.Glob(filepath.Join(p, "*.cue"))
+		m, err := fs.Glob(cuek8s.FS, filepath.Join(p, "*.cue"))
 		if err != nil {
 			return err
 		}
@@ -206,7 +210,7 @@ func writeText(w io.Writer, p *Package, d ...string) error {
 }
 
 func writeTextIndex(w io.Writer, pkgs Packages) error {
-	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', 0)
+	tw := tabwriter.NewWriter(stdout, 0, 8, 1, '\t', 0)
 	defer tw.Flush()
 
 	fmt.Fprintln(tw, "Name\tDescription")
@@ -235,45 +239,6 @@ func contains(s []string, v string) bool {
 	}
 
 	return false
-}
-
-func mkdir(d string) error {
-	return os.MkdirAll(d, 0755)
-}
-
-func writeFile(p string, d []byte) error {
-	return os.WriteFile(p, d, 0644)
-}
-
-type options struct {
-	force bool
-	out   string
-}
-
-var l *loader.Loader
-
-func getPackage(p string) (*Package, error) {
-	inst, err := l.Load(p)
-	if err != nil {
-		return nil, err
-	}
-
-	v := cuecontext.New().BuildInstance(inst)
-	if err := inst.Err; err != nil {
-		return nil, err
-	}
-
-	fields, err := fields(v)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Package{
-		c: v,
-
-		name:   p,
-		fields: fields,
-	}, nil
 }
 
 func fields(val cue.Value) ([]*Value, error) {
@@ -323,8 +288,36 @@ func fields(val cue.Value) ([]*Value, error) {
 	return fields, nil
 }
 
+func getPackage(p string) (*Package, error) {
+	inst, err := l.Load(p)
+	if err != nil {
+		return nil, err
+	}
+
+	v := cuecontext.New().BuildInstance(inst)
+	if err := inst.Err; err != nil {
+		return nil, err
+	}
+
+	fields, err := fields(v)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Package{
+		c: v,
+
+		name:   p,
+		fields: fields,
+	}, nil
+}
+
 func hasInputAttribute(v cue.Value) bool {
 	return cuetil.ContainsAttribute(v.Attributes(cue.FieldAttr), "input")
+}
+
+func mkdir(d string) error {
+	return os.MkdirAll(d, 0755)
 }
 
 func sortedKeys(m map[string]string) []string {
@@ -338,3 +331,18 @@ func sortedKeys(m map[string]string) []string {
 
 	return s
 }
+
+func writeFile(p string, d []byte) error {
+	return os.WriteFile(p, d, 0644)
+}
+
+type options struct {
+	force bool
+	out   string
+}
+
+var (
+	l *loader.Loader
+
+	stdout io.Writer = os.Stdout
+)
