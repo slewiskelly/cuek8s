@@ -18,22 +18,22 @@ import (
 // }
 // ```
 #ConfigMap: X={
-	#Base
+	#Base// TODO(slewiskelly): Base contains `spec`, but ConfigMap does not.
 
 	// Data to be stored.
 	data: {
 		[string]: string @input()
-	}
+	} @input()
 
-	patch: configMap: {...}
+	patch: configMap: _
 
-	resource: "ConfigMap": _#ConfigMap & {_X: {
+	resource: "ConfigMap": _ConfigMap & {_X: {
 		data: X.data, metadata: X.metadata
 	}} & X.patch.configMap
 }
 
-_#ConfigMap: k8s.#ConfigMap & {
-	_X: {...}
+_ConfigMap: k8s.#ConfigMap & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 

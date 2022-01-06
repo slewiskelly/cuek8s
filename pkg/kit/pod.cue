@@ -29,12 +29,16 @@ import (
 	//
 	// These environment variables are more complex structures than key/value
 	// pairs, such as those that reference values from fields or secrets.
-	envSpec: {[string]: {...}} @input()
+	envSpec: {
+		[string]: _ @input()
+	}
 
 	// Ports exposed by the application.
 	//
 	// Ports specified here will be exposed by a corresponding service.
-	expose: {[Name=string]: #Port & {name: Name}} @input()
+	expose: {
+		[Name=_]: #Port & {name: Name} @input()
+	}
 
 	// Initialization containers to be run before the primary (and any
 	// additional containers that have been specified) will be started.
@@ -51,7 +55,9 @@ import (
 
 	// Ports exposed by the application.
 	// Ports specified here will _not_ be exposed by a corresponding service.
-	port: {[Name=string]: #Port & {name: Name}} @input()
+	port: {
+		[Name=_]: #Port & {name: Name} @input()
+	}
 
 	// Resources requirements of the application.
 	resources: #Resources @input()
@@ -63,13 +69,7 @@ import (
 	} @input()
 
 	// Volumes to be mounted by the application.
-	volume: {[Name=string]: #Volume & {name: Name}} @input()
-
-	// Sets the simple key/value pair environment variables to the structure
-	// required by a Kubernetes manifest.
-	envSpec: {
-		for k, v in env {
-			"\(k)": value: v
-		}
+	volume: {
+		[Name=_]: #Volume & {name: Name} @input()
 	}
 }

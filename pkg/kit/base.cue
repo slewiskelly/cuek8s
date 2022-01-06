@@ -11,7 +11,7 @@ import (
 	metadata: #Metadata @input()
 
 	// Specification used to configure the resource(s).
-	spec: {...} @input()
+	spec: _ @input()
 
 	// Patches can be applied to individual resources.
 	//
@@ -25,7 +25,7 @@ import (
 	//         is the way most configuration should be applied by a user
 	//
 	// Patches will fail to apply if attempting to override **required** values.
-	patch: {[string]: {...}}
+	patch: [string]: _
 
 	// Generated Kubernetes resource keyed by the name of the resource.
 	resource: [string]: k8s.#Resource

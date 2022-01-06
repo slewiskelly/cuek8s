@@ -51,7 +51,7 @@ App: kit.#Application & {
         name:      "echo"
     }
 
-    spec: image: "acme-echo-jp"
+    spec: image: name: "acme-echo-jp"
 }
 ```
 
@@ -67,30 +67,26 @@ App: kit.#Application & {
 |`metadata.region`|`acme.#Region`||Region in which the resource belongs.|
 |`metadata.serviceID`|`acme.#Name`||ID of the service in which the resource belongs.|
 |`spec`|`struct`||Specification used to configure the resource(s).|
-|`spec.image`|`string`||Application's Docker image name, excluding the image registry prefix.<br/><br/>The image registry is assumed to be "gcr.io/$SERVICE-prod/".|
+|`spec.image`|`struct`||Workload image configuration.|
 |`spec.minAvailable`|`string`|`"50%"`|Minimum number of replicas, as a percentage, that must be available.<br/><br/>Replicas cannot be rescheduled until at least the number of repliacs<br/>are available.|
-|`spec.scaling`|`struct`||Scaling configuration.|
-|`spec.updates`|`struct`||Update configuration.|
+|`spec.scaling`|`kit.#ScalingType`|<pre>{<br/>	horizontal: {<br/>		minReplicas: *2 \| int<br/>		maxReplicas: *3 \| int<br/>		metrics:     *[{<br/>			resource:    "cpu"<br/>			utilization: 80<br/>		}] \| []<br/>	}<br/>}<pre/>|Scaling configuration.|
+|`spec.updates`|`kit.#UpdateType`|<pre>{<br/>	rolling: {<br/>		maxSurge:       *"50%" \| =~"^(0\|[1-9]%$\|^[1-9][0-9]\|100)%$"<br/>		maxUnavailable: *"0%" \| =~"^(0\|[1-9]%$\|^[1-9][0-9]\|100)%$"<br/>	}<br/>}<pre/>|Update configuration.|
 |`spec.additionalContainers`|`list`|`[]`|Containers to be run in addition to the primary container.|
 |`spec.args`|`list`|`[]`|Arguments to the primary container's entrypoint.|
 |`spec.command`|`list`|`[]`|Command that replaces the primary container's entrypoint.|
 |`spec.envFrom`|`list`|`[]`|Environment variables that are sourced from ConfigMaps or Secrets.|
-|`spec.expose`|`struct`||Ports exposed by the application.<br/><br/>Ports specified here will be exposed by a corresponding service.|
-|`spec.envSpec`|`struct`||Environment variables required by the application.<br/><br/>These environment variables are more complex structures than key/value<br/>pairs, such as those that reference values from fields or secrets.Sets the simple key/value pair environment variables to the structure<br/>required by a Kubernetes manifest.|
 |`spec.initContainers`|`list`|`[]`|Initialization containers to be run before the primary (and any<br/>additional containers that have been specified) will be started.<br/><br/>Initialization containers are run in the order they are specified.<br/><br/>All specified initialization containers will be ordered after critical<br/>initizaliation container(s) have been run. Critical initializarion<br/>containers will be added by the abstraction.|
-|`spec.network`|`struct`||Network configuration.|
+|`spec.network`|`kit.#Network`||Network configuration.|
 |`spec.network.serviceMesh`|`(null\|struct)`|`null`|Service mesh specific configuration.<br/><br/>By default, a service mesh is disabled.|
-|`spec.port`|`struct`||Ports exposed by the application.<br/>Ports specified here will _not_ be exposed by a corresponding service.|
-|`spec.resources`|`struct`||Resources requirements of the application.|
-|`spec.resources.requests`|`struct`||Minimum amount of resources required by an instance of an application.|
-|`spec.resources.requests.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`spec.resources.requests.memory`|`int`|`128M`|Memory is specified in bytes.|
-|`spec.resources.limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.|
-|`spec.resources.limits.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`spec.resources.limits.memory`|`int`|`128M`|Memory is specified in bytes.|
+|`spec.resources`|`kit.#Resources`||Resources requirements of the application.|
+|`spec.resources.requests`|`struct`||Minimum amount of resources required by an instance of an application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`spec.resources.requests.cpu`|`number`|`0.5`||
+|`spec.resources.requests.memory`|`int`|`128M`||
+|`spec.resources.limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`spec.resources.limits.cpu`|`number`|`0.5`||
+|`spec.resources.limits.memory`|`int`|`128M`||
 |`spec.tolerations`|`struct`||Tolerations used by scheduler.|
 |`spec.tolerations.preemptible`|`bool`|`false`|Whether an application uses preemptible nodes.|
-|`spec.volume`|`struct`||Volumes to be mounted by the application.|
 
 
 ## #Base
@@ -109,7 +105,7 @@ exception being made to the Pipeline resource and its variants).
 |`metadata.name`|`string`||Name of the resource.|
 |`metadata.region`|`acme.#Region`||Region in which the resource belongs.|
 |`metadata.serviceID`|`acme.#Name`||ID of the service in which the resource belongs.|
-|`spec`|`struct`||Specification used to configure the resource(s).|
+|`spec`|`_`||Specification used to configure the resource(s).|
 
 
 ## #Batch
@@ -128,43 +124,26 @@ Batch: kit.#Batch & {
         serviceID: "acme-echo-jp"
     }
 
-    spec: image: "loadtester"
+    spec: image: name: "loadtester"
 }
 ```
+
+**Type**: `_|_`
+
+
+
+## #BatchSpec
+
+Attributes that are common to all resources which contain a JobSpec.
 
 **Type**: `struct`
 
 |Name|Type|Default|Description|
 |----|----|-------|-----------|
-|`metadata`|`kit.#Metadata`||Metadata about the resource(s).|
-|`metadata.annotations`|`struct`||Annotations associated with the resource.|
-|`metadata.environment`|`acme.#Environment`||Environment in which the resource belongs.|
-|`metadata.labels`|`struct`||Labels associated with the resource.<br/><br/>All resources are labeled with the following and cannot be changed:<br/>- app<br/>- app.acme.in/name<br/>- app.acme.in/part-of<br/>- topology.acme.in/environment<br/>- topology.acme.in/region|
-|`metadata.name`|`string`||Name of the resource.|
-|`metadata.region`|`acme.#Region`||Region in which the resource belongs.|
-|`metadata.serviceID`|`acme.#Name`||ID of the service in which the resource belongs.|
-|`spec`|`struct`||Specification used to configure the resource(s).|
-|`spec.additionalContainers`|`list`|`[]`|Containers to be run in addition to the primary container.|
-|`spec.args`|`list`|`[]`|Arguments to the primary container's entrypoint.|
-|`spec.command`|`list`|`[]`|Command that replaces the primary container's entrypoint.|
-|`spec.envFrom`|`list`|`[]`|Environment variables that are sourced from ConfigMaps or Secrets.|
-|`spec.image`|`string`||Application's Docker image name, excluding the image registry prefix.<br/><br/>The image registry is assumed to be "gcr.io/$SERVICE-prod/".|
-|`spec.envSpec`|`struct`||Environment variables required by the application.<br/><br/>These environment variables are more complex structures than key/value<br/>pairs, such as those that reference values from fields or secrets.Sets the simple key/value pair environment variables to the structure<br/>required by a Kubernetes manifest.|
-|`spec.expose`|`struct`||Ports exposed by the application.<br/><br/>Ports specified here will be exposed by a corresponding service.|
-|`spec.initContainers`|`list`|`[]`|Initialization containers to be run before the primary (and any<br/>additional containers that have been specified) will be started.<br/><br/>Initialization containers are run in the order they are specified.<br/><br/>All specified initialization containers will be ordered after critical<br/>initizaliation container(s) have been run. Critical initializarion<br/>containers will be added by the abstraction.|
-|`spec.network`|`struct`||Network configuration.|
-|`spec.network.serviceMesh`|`(null\|struct)`|`null`|Service mesh specific configuration.<br/><br/>By default, a service mesh is disabled.|
-|`spec.port`|`struct`||Ports exposed by the application.<br/>Ports specified here will _not_ be exposed by a corresponding service.|
-|`spec.resources`|`struct`||Resources requirements of the application.|
-|`spec.resources.requests`|`struct`||Minimum amount of resources required by an instance of an application.|
-|`spec.resources.requests.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`spec.resources.requests.memory`|`int`|`128M`|Memory is specified in bytes.|
-|`spec.resources.limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.|
-|`spec.resources.limits.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`spec.resources.limits.memory`|`int`|`128M`|Memory is specified in bytes.|
-|`spec.tolerations`|`struct`||Tolerations used by scheduler.|
-|`spec.tolerations.preemptible`|`bool`|`false`|Whether an application uses preemptible nodes.|
-|`spec.volume`|`struct`||Volumes to be mounted by the application.|
+|`completions`|`(null\|int)`|`null`|Number of completions of the job before signaling overall success.<br/><br/>A null completion signals success after a single completion, and allows<br/>any number of instances to run in parallel.|
+|`cron`|`(null\|struct)`|`null`|By default a Job resource is generated, but specifying a schedule<br/>will generate a CronJob resource instead.|
+|`parallelism`|`int`|`1`|Maximum number of instances of the job that can be executed in parallel.<br/><br/>Number of executing instances may be lower if:<br/>(completions - successes) < parallelism<br/><br/>Setting parallelism to zero blocks any instances from executing until<br/>it is increased.|
+|`ttl`|`(null\|int)`|`null`|Number of seconds before the job is automatically deleted, after is has<br/>completed. A null TTL signals that the job should not be automatically<br/>deleted.|
 
 
 ## #ConfigMap
@@ -187,6 +166,7 @@ ConfigMap: kit.#ConfigMap & {
 
 |Name|Type|Default|Description|
 |----|----|-------|-----------|
+|`data`|`struct`||Data to be stored.|
 |`metadata`|`kit.#Metadata`||Metadata about the resource(s).|
 |`metadata.annotations`|`struct`||Annotations associated with the resource.|
 |`metadata.environment`|`acme.#Environment`||Environment in which the resource belongs.|
@@ -194,13 +174,12 @@ ConfigMap: kit.#ConfigMap & {
 |`metadata.name`|`string`||Name of the resource.|
 |`metadata.region`|`acme.#Region`||Region in which the resource belongs.|
 |`metadata.serviceID`|`acme.#Name`||ID of the service in which the resource belongs.|
-|`spec`|`struct`||Specification used to configure the resource(s).|
+|`spec`|`_`||Specification used to configure the resource(s).|
 
 
 ## #CronConcurrencyPolicy
 
-CronConcurrencyPolicy specifies a CronJob's policy for concurrent execution.
-
+CronConcurrencyPolicy specifies a CronJob's policy for concurrent execution:
  - allow: concurrent executions are allowed
  - forbid: concurreny executions are not allowed
  - replace: existing executions will be canceled, before starting a new one
@@ -209,9 +188,9 @@ CronConcurrencyPolicy specifies a CronJob's policy for concurrent execution.
 
 
 
-## #JobSpec
+## #ImageSpec
 
-Attributes that are common to all resources which contain a JobSpec.
+ImageSpec is the full Docker image name with tag that is used in an Application
 
 **Type**: `struct`
 
@@ -271,22 +250,18 @@ Attributes that are common to all resources which contain a PodSpec.
 |`args`|`list`|`[]`|Arguments to the primary container's entrypoint.|
 |`command`|`list`|`[]`|Command that replaces the primary container's entrypoint.|
 |`envFrom`|`list`|`[]`|Environment variables that are sourced from ConfigMaps or Secrets.|
-|`envSpec`|`struct`||Environment variables required by the application.<br/><br/>These environment variables are more complex structures than key/value<br/>pairs, such as those that reference values from fields or secrets.Sets the simple key/value pair environment variables to the structure<br/>required by a Kubernetes manifest.|
-|`expose`|`struct`||Ports exposed by the application.<br/><br/>Ports specified here will be exposed by a corresponding service.|
 |`initContainers`|`list`|`[]`|Initialization containers to be run before the primary (and any<br/>additional containers that have been specified) will be started.<br/><br/>Initialization containers are run in the order they are specified.<br/><br/>All specified initialization containers will be ordered after critical<br/>initizaliation container(s) have been run. Critical initializarion<br/>containers will be added by the abstraction.|
 |`network`|`kit.#Network`||Network configuration.|
 |`network.serviceMesh`|`(null\|struct)`|`null`|Service mesh specific configuration.<br/><br/>By default, a service mesh is disabled.|
-|`port`|`struct`||Ports exposed by the application.<br/>Ports specified here will _not_ be exposed by a corresponding service.|
 |`resources`|`kit.#Resources`||Resources requirements of the application.|
-|`resources.requests`|`struct`||Minimum amount of resources required by an instance of an application.|
-|`resources.requests.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`resources.requests.memory`|`int`|`128M`|Memory is specified in bytes.|
-|`resources.limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.|
-|`resources.limits.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`resources.limits.memory`|`int`|`128M`|Memory is specified in bytes.|
+|`resources.requests`|`struct`||Minimum amount of resources required by an instance of an application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`resources.requests.cpu`|`number`|`0.5`||
+|`resources.requests.memory`|`int`|`128M`||
+|`resources.limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`resources.limits.cpu`|`number`|`0.5`||
+|`resources.limits.memory`|`int`|`128M`||
 |`tolerations`|`struct`||Tolerations used by scheduler.|
 |`tolerations.preemptible`|`bool`|`false`|Whether an application uses preemptible nodes.|
-|`volume`|`struct`||Volumes to be mounted by the application.|
 
 
 ## #Port
@@ -330,12 +305,12 @@ Resources specifies an application's resource configuration.
 
 |Name|Type|Default|Description|
 |----|----|-------|-----------|
-|`requests`|`struct`||Minimum amount of resources required by an instance of an application.|
-|`requests.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`requests.memory`|`int`|`128M`|Memory is specified in bytes.|
-|`limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.|
-|`limits.cpu`|`number`|`0.5`|CPU is specified as the number of vCPUs, fractions of a CPU are<br/>allowed.|
-|`limits.memory`|`int`|`128M`|Memory is specified in bytes.|
+|`requests`|`struct`||Minimum amount of resources required by an instance of an application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`requests.cpu`|`number`|`0.5`||
+|`requests.memory`|`int`|`128M`||
+|`limits`|`struct`||Maximum amount of resources that can be used by an instance of an<br/>application.<br/><br/>CPU is specified as the number of vCPUs, fractions of a CPU are allowed.<br/>RAM is specified in bytes.|
+|`limits.cpu`|`number`|`0.5`||
+|`limits.memory`|`int`|`128M`||
 
 
 ## #Rolling
@@ -489,6 +464,46 @@ ScalingType specifies how an application should scale.
 
 
 
+## #ScalingVertical
+
+ScalingVertical specifies that an application should scale vertically,
+and the amount of CPU and/or memory should increase based on utilization.
+
+Example:
+```cue
+App: kit.#Application & {
+    metadata: {
+        serviceID: "acme-echo-jp"
+        name:      "echo"
+    }
+
+    spec: scaling: vertical: replicas: 4
+}
+```
+
+**Type**: `struct`
+
+|Name|Type|Default|Description|
+|----|----|-------|-----------|
+|`vertical`|`struct`|||
+|`vertical.cpu`|`(null\|struct)`|`null`|If specified, CPU will be scaled to no less than min, and no more<br/>than max.<br/><br/>CPU will be scaled at the specified request:limit ratio.<br/><br/>By default, CPU is not scaled.|
+|`vertical.memory`|`(null\|struct)`|`null`|If specified, memory will be scaled to no less than min, and no more<br/>than max.<br/><br/>Memory will be scaled at the specified request:limit ratio.<br/><br/>By default, memory is not scaled.|
+|`vertical.mode`|`kit.#ScalingVerticalMode`|`"auto"`|Mode of operation of the application's autoscaler.|
+|`vertical.replicas`|`int`|`2`|Number of replicas of the application.|
+
+
+## #ScalingVerticalMode
+
+ScalingVerticalMode specifies the mode of operation of an application's
+autoscaler:
+- auto: assigns resources on creation and during the remaining lifetime of the Pod
+- initial: only assigns resources on creation, no updates are made during the remaining lifetime of the Pod
+- off: never assigns resources, only provides recommendations
+
+**Type**: `string`
+
+
+
 ## #Service
 
 Service specifies a minor abstraction of a Kubernetes Service.
@@ -521,16 +536,14 @@ Service: kit.#Service & {
 |`metadata.region`|`acme.#Region`||Region in which the resource belongs.|
 |`metadata.serviceID`|`acme.#Name`||ID of the service in which the resource belongs.|
 |`spec`|`struct`||Specification used to configure the resource(s).|
-|`spec.expose`|`struct`||Ports exposed by the service.|
-|`spec.selector`|`struct`||Label selector used to route traffic to the relevant Pod.|
-|`spec.type`|`_\|_`||Type of the service.|
+|`spec.type`|`kit.#ServiceType`|`"ClusterIP"`|Type of the service.|
 
 
 ## #ServiceType
 
 ServiceType specifies how the service is exposed.
 
-See https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-servi    ce-types
+See https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
 for more information on service types.
 
 **Type**: `string`

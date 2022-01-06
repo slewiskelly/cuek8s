@@ -17,7 +17,7 @@ import (
 //         serviceID: "acme-echo-jp"
 //         name:      "http"
 //     }
-// 
+//
 //     spec: {
 //         expose: http: {port: 80, targetPort: 8080}
 //         selector: App.metadata.labels
@@ -28,32 +28,38 @@ import (
 #Service: X={
 	#Base
 
-	spec: {
-		// Ports exposed by the service.
-		expose: {[Name=_]: #Port & {name: Name}} @input()
+	spec: _#ServiceSpec
 
-		// Label selector used to route traffic to the relevant Pod.
-		selector: {[string]: string} @input()
+	patch: service: _
 
-		// Type of the service.
-		type: k8s.#ServiceType @input()
-	}
-
-	patch: service: {...}
-
-	resource: "Service": _#Service & {_X: {
+	resource: "Service": _Service & {_X: {
 		spec: X.spec, metadata: X.metadata
 	}} & X.patch.service
 }
 
+_#ServiceSpec: {
+	// Ports exposed by the service.
+	expose: {
+		[Name=_]: #Port & {name: Name} @input()
+	}
+
+	// Label selector used to route traffic to the relevant Pod.
+	selector: {
+		[string]: string @input()
+	}
+
+	// Type of the service.
+	type: #ServiceType @input()
+}
+
 // ServiceType specifies how the service is exposed.
 //
-// See https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-servi    ce-types
+// See https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
 // for more information on service types.
 #ServiceType: *"ClusterIP" | "ExternalName" | "NodePort" | "LoadBalancer"
 
-_#Service: k8s.#Service & {
-	_X: {...}
+_Service: k8s.#Service & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 
@@ -67,8 +73,6 @@ _#Service: k8s.#Service & {
 
 		selector: _X.spec.selector
 
-		if _X.spec.type != _|_ {
-			type: _X.spec.type
-		}
+		type: _X.spec.type
 	}
 }

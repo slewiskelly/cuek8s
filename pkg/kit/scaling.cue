@@ -3,9 +3,9 @@ package kit
 import (
 	"strings"
 
-	"github.com/slewiskelly/cuek8s/pkg/k8s"
-
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/slewiskelly/cuek8s/pkg/k8s"
 )
 
 // ScalingHorizontal specifies that an application should scale horizontally,
@@ -141,10 +141,60 @@ import (
 // ScalingType specifies how an application should scale.
 #ScalingType:
 	*#ScalingHorizontal |
-	#ScalingStatic
+	#ScalingStatic |
+	#ScalingVertical
 
-_#HorizontalPodAutoscaler: k8s.#HorizontalPodAutoscaler & {
-	_X: {...}
+// ScalingVertical specifies that an application should scale vertically,
+// and the amount of CPU and/or memory should increase based on utilization.
+//
+// Example:
+// ```cue
+// App: kit.#Application & {
+//     metadata: {
+//         serviceID: "acme-echo-jp"
+//         name:      "echo"
+//     }
+//
+//     spec: scaling: vertical: replicas: 4
+// }
+// ```
+#ScalingVertical: {
+	_type: "vertical"
+
+	vertical: {
+		// If specified, CPU will be scaled to no less than min, and no more
+		// than max.
+		//
+		// CPU will be scaled at the specified request:limit ratio.
+		//
+		// By default, CPU is not scaled.
+		cpu: *null | {min: number, max: number & >=min} @input()
+
+		// If specified, memory will be scaled to no less than min, and no more
+		// than max.
+		//
+		// Memory will be scaled at the specified request:limit ratio.
+		//
+		// By default, memory is not scaled.
+		memory: *null | {min: int, max: int & >=min} @input()
+
+		// Mode of operation of the application's autoscaler.
+		mode: #ScalingVerticalMode @input()
+
+		// Number of replicas of the application.
+		replicas: int | *2 @input()
+	} @input()
+}
+
+// ScalingVerticalMode specifies the mode of operation of an application's
+// autoscaler:
+// - auto: assigns resources on creation and during the remaining lifetime of the Pod
+// - initial: only assigns resources on creation, no updates are made during the remaining lifetime of the Pod
+// - off: never assigns resources, only provides recommendations
+#ScalingVerticalMode: *"auto" | "initial" | "off"
+
+_HorizontalPodAutoscaler: k8s.#HorizontalPodAutoscaler & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 
@@ -199,5 +249,48 @@ _#HorizontalPodAutoscaler: k8s.#HorizontalPodAutoscaler & {
 			name:       _X.metadata.name
 		}
 
+	}
+}
+
+_VerticalPodAutoscaler: k8s.#VerticalPodAutoscaler & {
+	_X: _
+
+	metadata: _X.metadata.metadata
+
+	spec: {
+		resourcePolicy: containerPolicies: [
+			{
+				containerName: _X.metadata.name
+
+				controlledResources: [
+					if _X.spec.scaling.vertical.cpu != null {"cpu"},
+					if _X.spec.scaling.vertical.memory != null {"memory"},
+				]
+
+				if _X.spec.scaling.vertical.cpu != null {
+					minAllowed: cpu: "\(_X.spec.scaling.vertical.cpu.max)"
+					maxAllowed: cpu: "\(_X.spec.scaling.vertical.cpu.min)"
+				}
+
+				if _X.spec.scaling.vertical.memory != null {
+					minAllowed: memory: _X.spec.scaling.vertical.memory.min
+					maxAllowed: memory: _X.spec.scaling.vertical.memory.max
+				}
+			},
+			// TODO(slewiskelly): Revisit this if necessary.
+			// Sidecar CPU is currently proportional to primary container CPU.
+			if _X.spec.network.serviceMesh != null {{
+				containerName: "istio-proxy"
+				mode:          "Off"
+			}},
+		]
+
+		targetRef: {
+			apiVersion: string | *"apps/v1"
+			kind:       string | *"Deployment"
+			name:       _X.metadata.name
+		}
+
+		updatePolicy: updateMode: strings.ToTitle(_X.spec.scaling.vertical.mode)
 	}
 }

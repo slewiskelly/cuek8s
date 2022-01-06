@@ -27,7 +27,7 @@ import (
 //         name:      "echo"
 //     }
 //
-//     spec: image: "acme-echo-jp"
+//     spec: image: name: "acme-echo-jp"
 // }
 // ```
 #Application: X={
@@ -36,10 +36,18 @@ import (
 	spec: {
 		#PodSpec
 
-		// Application's Docker image name, excluding the image registry prefix.
-		//
-		// The image registry is assumed to be "gcr.io/$SERVICE-prod/".
-		image: acme.#Name | *X.metadata.name @input()
+		// Workload image configuration.
+		image: #ImageSpec | *(#ImageSpec & {
+			// Application's Docker registry name.
+			//
+			// Defaults to "gcr.io/$SERVICE_ID-prod/".
+			registry: string | *"gcr.io/\(X.metadata.serviceID)-prod"
+
+			// Application's Docker image name.
+			//
+			// Defaults to the name of the application.
+			name: acme.#Name | *X.metadata.name
+		}) @input()
 
 		// Minimum number of replicas, as a percentage, that must be available.
 		//
@@ -58,17 +66,30 @@ import (
 	}
 
 	patch: {
-		container: {...}
-		deployment: {...}
-		destinationRule: {...}
-		horizontalPodAutoscaler: {...}
-		podDisruptionBudget: {...}
-		service: {...}
-		virtualService: {...}
+		container:               _
+		deployment:              _
+		destinationRule:         _
+		horizontalPodAutoscaler: _
+		podDisruptionBudget:     _
+		service:                 _
+		verticalPodAutoscaler:   _
+		virtualService:          _
+	}
+
+	// Service
+	if len(X.spec.expose) > 0 {
+		resource: "Service": (#Service & {
+			metadata: X.metadata
+			spec: {
+				expose: X.spec.expose
+				selector: {for k, v in X.metadata.labels if list.Contains(_reservedLabels, k) {"\(k)": v}}
+			}
+			patch: service: X.patch.service
+		}).resource["Service"]
 	}
 
 	// Deployment
-	resource: "Deployment": _#Deployment & {_X: {
+	resource: "Deployment": _Deployment & {_X: {
 		spec: X.spec, metadata: X.metadata, patch: {
 			if X.patch.deployment.spec.selector != _|_ {
 				deployment: spec: selector: X.patch.deployment.spec.selector
@@ -77,61 +98,86 @@ import (
 		}
 	}} & X.patch.deployment
 
-	// DestinationRule (Istio only)
-	if X.spec.network.serviceMesh != _|_ {
-		resource: "DestinationRule": _#DestinationRule & {_X: {
-			spec: X.spec, metadata: X.metadata
-		}} & X.patch.destinationRule
-	}
-
 	// HorizontalPodAutoscaler
 	if X.spec.scaling._type == "horizontal" {
-		resource: "HorizontalPodAutoscaler": _#HorizontalPodAutoscaler & {_X: {
+		resource: "HorizontalPodAutoscaler": _HorizontalPodAutoscaler & {_X: {
 			spec: X.spec, metadata: X.metadata
 		}} & X.patch.horizontalPodAutoscaler
 	}
 
 	// PodDisruptionBudget
 	if X.spec.scaling._type == "horizontal" {
-		resource: "PodDisruptionBudget": _#PodDisruptionBudget & {_X: {
+		resource: "PodDisruptionBudget": _PodDisruptionBudget & {_X: {
 			spec: X.spec, metadata: X.metadata
 		}} & X.patch.podDisruptionBudget
 	}
 
 	if X.spec.scaling._type == "static" {
 		if X.spec.scaling.static.replicas != 1 {
-			resource: "PodDisruptionBudget": _#PodDisruptionBudget & {_X: {
+			resource: "PodDisruptionBudget": _PodDisruptionBudget & {_X: {
 				spec: X.spec, metadata: X.metadata
 			}} & X.patch.podDisruptionBudget
 		}
 	}
 
-	// Service
-	resource: "Service": (#Service & {
-		metadata: X.metadata
-		spec: {
-			expose: X.spec.expose
-			selector: {for k, v in X.metadata.labels if list.Contains(_reservedLabels, k) {"\(k)": v}}
+	if X.spec.scaling._type == "vertical" {
+		if X.spec.scaling.vertical.replicas != 1 {
+			resource: "PodDisruptionBudget": _PodDisruptionBudget & {_X: {
+				spec: X.spec, metadata: X.metadata
+			}} & X.patch.podDisruptionBudget
 		}
-		patch: service: X.patch.service
-	}).resource["Service"]
+	}
+
+	// DestinationRule (Istio only)
+	if X.spec.network.serviceMesh != null {
+		resource: "DestinationRule": _DestinationRule & {_X: {
+			spec: X.spec, metadata: X.metadata
+		}} & X.patch.destinationRule
+	}
+
+	// VerticalPodAutoscaler
+	if X.spec.scaling._type == "vertical" {
+		resource: "VerticalPodAutoscaler": _VerticalPodAutoscaler & {_X: {
+			spec: X.spec, metadata: X.metadata
+		}} & X.patch.verticalPodAutoscaler
+	}
 
 	// VirtualService (Istio only)
-	if X.spec.network.serviceMesh != _|_ {
-		resource: "VirtualService": _#VirtualService & {_X: {
+	if X.spec.network.serviceMesh != null {
+		resource: "VirtualService": _VirtualService & {_X: {
 			spec: X.spec, metadata: X.metadata
 		}} & X.patch.virtualService
 	}
 }
 
-_#Deployment: k8s.#Deployment & {
-	_X: {...}
+// ImageSpec is the full Docker image name with tag that is used in an Application
+#ImageSpec: {
+	// Application's Docker image name, excluding the image registry prefix.
+	name: string
 
-	metadata: _X.metadata.metadata
+	// The image registry name.
+	registry: string
+
+	// The image tag
+	tag: *null | string
+}
+
+_Deployment: k8s.#Deployment & {
+	_X: _
+
+	metadata: _X.metadata.metadata & {
+		annotations: {
+			"kubectl.kubernetes.io/default-container": _X.metadata.name
+		}
+	}
 
 	spec: {
 		if _X.spec.scaling._type == "static" {
 			replicas: _X.spec.scaling.static.replicas
+		}
+
+		if _X.spec.scaling._type == "vertical" {
+			replicas: _X.spec.scaling.vertical.replicas
 		}
 
 		if _X.spec.updates._type == "recreate" {
@@ -147,6 +193,7 @@ _#Deployment: k8s.#Deployment & {
 				type: "RollingUpdate"
 			}
 		}
+
 		selector: matchLabels: {
 			for k, v in _X.metadata.labels if list.Contains([
 					"app.acme.in/name",
@@ -157,7 +204,7 @@ _#Deployment: k8s.#Deployment & {
 		template: {
 			metadata: {
 				annotations: {
-					if _X.spec.network.serviceMesh != _|_ {
+					if _X.spec.network.serviceMesh != null {
 						"sidecar.istio.io/inject":                          "true"
 						"sidecar.istio.io/proxyCPU":                        "\(math.Ceil((_X.spec.resources.requests.cpu*1000)*0.5))m"
 						"sidecar.istio.io/proxyCPULimit":                   "\(math.Ceil((_X.spec.resources.limits.cpu*1000)*0.75))m"
@@ -188,13 +235,13 @@ _#Deployment: k8s.#Deployment & {
 	]
 
 	spec: template: spec: containers: [
-		_#Primary & {_Y: _X} & _X.patch.container,
+		_Primary & {_Y: _X} & _X.patch.container,
 		for x in _X.spec.additionalContainers {x},
 	]
 }
 
-_#DestinationRule: k8s.#DestinationRule & {
-	_X: {...}
+_DestinationRule: k8s.#DestinationRule & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 
@@ -214,8 +261,8 @@ _#DestinationRule: k8s.#DestinationRule & {
 
 }
 
-_#PodDisruptionBudget: k8s.#PodDisruptionBudget & {
-	_X: {...}
+_PodDisruptionBudget: k8s.#PodDisruptionBudget & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 
@@ -225,8 +272,8 @@ _#PodDisruptionBudget: k8s.#PodDisruptionBudget & {
 	}
 }
 
-_#VirtualService: k8s.#VirtualService & {
-	_X: {...}
+_VirtualService: k8s.#VirtualService & {
+	_X: _
 
 	metadata: _X.metadata.metadata
 
