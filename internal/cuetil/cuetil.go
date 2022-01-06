@@ -1,3 +1,4 @@
+// Package cuetil contains various helper functions for working with CUE values.
 package cuetil
 
 import (
@@ -7,6 +8,8 @@ import (
 	"cuelang.org/go/cue"
 )
 
+// ContainsAttribute returns true of there is an attribute of the same name
+// within the set of given attributes.
 func ContainsAttribute(a []cue.Attribute, s string) bool {
 	for _, t := range a {
 		if t.Name() == s {
@@ -17,14 +20,21 @@ func ContainsAttribute(a []cue.Attribute, s string) bool {
 	return false
 }
 
+// FillPaths returns an updated value, filling the given paths to their
+// corresponding values.
+//
+// An error is returned if the value fails to validate after all paths have
+// been filled.
 func FillPaths(v cue.Value, m map[string]interface{}) (cue.Value, error) {
 	for p, x := range m {
 		v = v.FillPath(cue.ParsePath(p), x)
 	}
 
+	// TODO(slewiskelly): Fail fast instead?
 	return v, v.Validate()
 }
 
+// IsDefinition returns true if the given value is a definition.
 func IsDefinition(v cue.Value) bool {
 	_, r := v.ReferencePath()
 
@@ -37,6 +47,8 @@ func IsDefinition(v cue.Value) bool {
 	return false
 }
 
+// LongDescription returns the full description of the given value, as derived
+// from the value's commentary.
 func LongDescription(v cue.Value) string {
 	b := new(strings.Builder)
 
@@ -47,6 +59,8 @@ func LongDescription(v cue.Value) string {
 	return b.String()
 }
 
+// ShortDescription returns a short description of the given value (the first
+// sentence), as derived from the value's commentary.
 func ShortDescription(v cue.Value) string {
 	s := bufio.NewScanner(strings.NewReader(strings.Join(strings.Split(LongDescription(v), "\n"), " ")))
 	s.Split(splitSentence)
