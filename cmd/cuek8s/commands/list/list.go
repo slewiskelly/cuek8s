@@ -54,7 +54,6 @@ func run(args []string, opts *options) error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
 
 	inst, err := l.Load(args...)
 	if err != nil {

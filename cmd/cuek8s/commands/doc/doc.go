@@ -53,7 +53,6 @@ func run(args []string, opts *options) error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
 
 	if opts.out != "" {
 		return markdownAll(opts.out, opts.force)

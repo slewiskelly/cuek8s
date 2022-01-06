@@ -25,7 +25,7 @@ func New() *cobra.Command {
 
 Input(s) are the same as those of the ` + "`cue`" + ` tool. See ` + "`cue inputs`" + ` for more information.
 
-The directory structure generated is according the platform's logical topology in the given country. 
+The directory structure generated is according the platform's logical topology in the given country.
 `,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(args, opts)
@@ -48,7 +48,6 @@ func run(args []string, opts *options) error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
 
 	inst, err := l.Load("./...")
 	if err != nil {
