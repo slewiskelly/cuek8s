@@ -20,11 +20,13 @@ func New() *cobra.Command {
 	opts := new(options)
 
 	cmd := &cobra.Command{
-		Use:   "list [-o FORMAT] INPUT...",
+		Use:   "list [FLAGS] INPUT...",
 		Short: "Lists Kubernetes resources along with other metadata",
 		Long: `Lists Kubernetes resources along with other metadata
 
 Input(s) are the same as those of the ` + "`cue`" + ` tool. See ` + "`cue inputs`" + ` for more information.
+
+If specified, -d or --deliverables will filter resources for the specific deliverable(s).
 
 If specified, -k or --kind will filter resources by their kind.
 
@@ -37,6 +39,7 @@ Specifying both will filter resources by both kind and name.
 		},
 	}
 
+	cmd.Flags().StringSliceVarP(&opts.Deliverables, "deliverables", "d", nil, "Deliverable(s) to apply")
 	cmd.Flags().StringVarP(&opts.Format, "out", "o", "table", "Output format (json|table)")
 	cmd.Flags().StringSliceVarP(&opts.Kinds, "kind", "k", nil, "Kubernetes resource kind(s) to list")
 	cmd.Flags().StringSliceVarP(&opts.Names, "name", "n", nil, "Kubernetes resource names(s) to list")
@@ -81,10 +84,11 @@ func run(args []string, opts *options) error {
 	}
 
 	cl, err := cuetil.FillPaths(ctx.CompileBytes(cueList), map[string]interface{}{
-		"ls.inputs.format":   opts.Format,
-		"ls.inputs.kinds":    opts.Kinds,
-		"ls.inputs.names":    opts.Names,
-		"ls.inputs.delivery": v.LookupPath(cue.ParsePath("Delivery")),
+		"ls.inputs.deliverables": opts.Deliverables,
+		"ls.inputs.format":       opts.Format,
+		"ls.inputs.kinds":        opts.Kinds,
+		"ls.inputs.names":        opts.Names,
+		"ls.inputs.delivery":     v.LookupPath(cue.ParsePath("Delivery")),
 	})
 	if err != nil {
 		return err
@@ -101,9 +105,10 @@ func run(args []string, opts *options) error {
 }
 
 type options struct {
-	Format string `cue:"=~\"(json|table)\""`
-	Kinds  []string
-	Names  []string
+	Deliverables []string
+	Format       string `cue:"=~\"(json|table)\""`
+	Kinds        []string
+	Names        []string
 }
 
 var (

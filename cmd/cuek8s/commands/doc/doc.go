@@ -25,7 +25,7 @@ func New() *cobra.Command {
 	opts := new(options)
 
 	cmd := &cobra.Command{
-		Use:   "doc [-O OUTPUT_DIR -f] [PACKAGE] [DEFINITION]",
+		Use:   "doc [FLAGS] [PACKAGE] [DEFINITION]",
 		Short: "Displays reference documentation",
 		Long: `Displays reference documentation.
 

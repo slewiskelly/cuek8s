@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"github.com/slewiskelly/cuek8s/pkg/delivery/kubectl"
+	"github.com/slewiskelly/cuek8s/pkg/delivery/stdout"
 	"github.com/slewiskelly/cuek8s/pkg/kit"
 )
 
@@ -16,7 +16,7 @@ App: kit.#Application & {
 }
 
 Delivery: {
-	details: kubectl.#Delivery & {
+	details: stdout.#Delivery & {
 		resources: App.resources
 	}
 }

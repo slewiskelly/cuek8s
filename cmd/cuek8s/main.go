@@ -5,10 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/apply"
 	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/create"
 	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/doc"
 	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/dump"
 	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/list"
+	"github.com/slewiskelly/cuek8s/cmd/cuek8s/commands/plan"
 )
 
 var cmd = &cobra.Command{
@@ -21,10 +23,12 @@ var cmd = &cobra.Command{
 }
 
 func init() {
+	cmd.AddCommand(apply.New())
 	cmd.AddCommand(create.New())
 	cmd.AddCommand(doc.New())
 	cmd.AddCommand(dump.New())
 	cmd.AddCommand(list.New())
+	cmd.AddCommand(plan.New())
 }
 
 func main() {

@@ -5,44 +5,50 @@ package kubectl
 import (
 	"encoding/yaml"
 	"strings"
-	"tool/exec"
 
-	"github.com/slewiskelly/cuek8s/pkg/k8s"
 	"github.com/slewiskelly/cuek8s/pkg/delivery"
+	"github.com/slewiskelly/cuek8s/pkg/k8s"
+	"github.com/slewiskelly/cuek8s/pkg/workflow/tasks/exec"
 )
 
-// Delivery is a delivery method that deploys Kubernetes resources via kubectl.
+// Delivery is a delivery method that deploys Kubernetes resources via
+// `kubectl`.
+//
+// Resources delivered via this method will have the following label(s) applied:
+// - `app.acme.in/managed-by=kubectl`
 #Delivery: X=delivery.#Method & {
 	// Use the provided context when deploying resources.
 	//
 	// If unset the current context of the environment is used.
-	context: *null | string @input()
+	context: *null | string & !="" @input()
 
-	// Prune resources.
-	//
-	// Resources will only be pruned if they have the following label(s):
+	// Prune resources that have the folowing label(s) applied:
 	// - `app.acme.in/managed-by=kubectl`
 	prune: bool | *false @input()
 
-	apply: [#Apply & {
-		if X.context != null {context: X.context}
-		dryRun:    false
-		prune:     X.prune
-		resources: X._resources
-	}]
+	apply: {
+		apply: #Apply & {
+			context:   X.context
+			dryRun:    false
+			prune:     X.prune
+			resources: X._resources
+		}
+	}
 
-	plan: [#Apply & {
-		if X.context != null {context: X.context}
-		dryRun:    true
-		prune:     X.prune
-		resources: X._resources
-	}]
+	plan: {
+		apply: #Apply & {
+			context:   X.context
+			dryRun:    true
+			prune:     X.prune
+			resources: X._resources
+		}
+	}
 
 	_resources: [ for r in X.resources {r & {metadata: labels: "app.acme.in/managed-by": "kubectl"}}]
 }
 
-// Apply is task which executes `kubectl apply`.
-#Apply: X=exec.Run & {
+// Apply is a task which executes `kubectl apply`.
+#Apply: X=exec.#Run & {
 	// Use the provided context when deploying resources.
 	//
 	// If unset the current context of the environment is used.
@@ -51,10 +57,8 @@ import (
 	// Perform a client-side dry-run.
 	dryRun: bool | *true @input()
 
-	// Prune resources.
-	//
-	// Resources will only be pruned if they have the following label(s):
-	// - `app.acme.in/managed-by=kubectl`
+	// Prune resources that have the following label selector(s):
+	// - app.acme.in/managed-by=kubectl
 	prune: bool | *false @input()
 
 	// Kubernetes resources that are to be deployed.
@@ -62,7 +66,7 @@ import (
 
 	_flags: [
 		if X.context != null {
-			"--context=\(context)"
+			"--context=\(X.context)"
 		},
 
 		if X.dryRun {
@@ -70,28 +74,20 @@ import (
 		},
 
 		for x in [
-			// TODO(slewiskelly): Pruning does not work on custom resources
-			// e.g. DestinationRules and VirtualServices.
 			"--prune=true",
-			// TODO(slewiskelly): Consider adding user defined selectors.
 			"--selector=app.acme.in/managed-by=kubectl",
 		] if X.prune {x},
 	]
 
-	if len(resources) > 0 {
-		cmd: [
-			"/bin/bash", "-c",
-			"""
-            kubectl apply \(strings.Join(_flags, " ")) -f -
-            """,
-		]
+	if len(X.resources) > 0 {
+		name: "kubectl"
+		arg: ["apply", "\(strings.Join(_flags, " "))", "-f", "-"]
 	}
 
-	if len(resources) < 1 {
-		cmd: ["echo", "No resources to apply!"]
+	if len(X.resources) < 1 {
+		name: "echo"
+		arg: ["No resources to apply!"]
 	}
 
 	stdin: yaml.MarshalStream(X.resources)
-
-	...
 }

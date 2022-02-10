@@ -9,7 +9,7 @@ resources via kubectl.
 
 ## #Apply
 
-Apply is task which executes `kubectl apply`.
+Apply is a task which executes `kubectl apply`.
 
 **Type**: `struct`
 
@@ -17,22 +17,28 @@ Apply is task which executes `kubectl apply`.
 |----|----|-------|-----------|
 |`context`|`(null\|string)`|`null`|Use the provided context when deploying resources.<br/><br/>If unset the current context of the environment is used.|
 |`dryRun`|`bool`|`true`|Perform a client-side dry-run.|
-|`prune`|`bool`|`false`|Prune resources.<br/><br/>Resources will only be pruned if they have the following label(s):<br/>- `app.acme.in/managed-by=kubectl`|
+|`prune`|`bool`|`false`|Prune resources that have the following label selector(s):<br/>- app.acme.in/managed-by=kubectl|
 |`resources`|`list`|`[]`|Kubernetes resources that are to be deployed.|
+|`arg`|`list`|`["No resources to apply!"]`|Arguments to the command being executed.|
+|`name`|`string`||Name of the command being executed.|
+|`stdin`|`_\|_`||Data to be sent to the executed command's standard input.|
+|`stdout`|`(null\|string)`|`null`|Data sent to the executed command's standard output.<br/><br/>If `string` data will be captured here, otherwise will be sent to the<br/>process's standard out.|
 
 
 ## #Delivery
 
-Delivery is a delivery method that deploys Kubernetes resources via kubectl.
+Delivery is a delivery method that deploys Kubernetes resources via
+`kubectl`.
+
+Resources delivered via this method will have the following label(s) applied:
+- `app.acme.in/managed-by=kubectl`
 
 **Type**: `struct`
 
 |Name|Type|Default|Description|
 |----|----|-------|-----------|
 |`context`|`(null\|string)`|`null`|Use the provided context when deploying resources.<br/><br/>If unset the current context of the environment is used.|
-|`prune`|`bool`|`false`|Prune resources.<br/><br/>Resources will only be pruned if they have the following label(s):<br/>- `app.acme.in/managed-by=kubectl`|
-|`apply`|`list`|<pre>[{<br/>	$id: *"tool/exec.Run" \| "exec"<br/>	cmd: ["echo", "No resources to apply!"]<br/>	env: {}<br/>	stdout:  *null \| string \| bytes<br/>	stderr:  *null \| string \| bytes<br/>	context: *null \| !=""<br/>	dryRun:  false<br/>	prune:   *false \| bool<br/>	stdin:   ""<br/>	success: bool<br/>	resources: []<br/>}]<pre/>|Set of tasks which will actually deliver the resources.<br/><br/>Tasks are executed in the same order as they are defined.|
-|`plan`|`list`|<pre>[{<br/>	$id: *"tool/exec.Run" \| "exec"<br/>	cmd: ["echo", "No resources to apply!"]<br/>	env: {}<br/>	stdout:  *null \| string \| bytes<br/>	stderr:  *null \| string \| bytes<br/>	context: *null \| !=""<br/>	dryRun:  true<br/>	prune:   *false \| bool<br/>	stdin:   ""<br/>	success: bool<br/>	resources: []<br/>}]<pre/>|Set of tasks which will plan how the resources will be delivered,<br/>without actually delivering them.<br/><br/>Tasks are executed in the same order as they are defined.|
-|`resources`|`list`|`[]`|Resources to be delivered.|
+|`prune`|`bool`|`false`|Prune resources that have the folowing label(s) applied:<br/>- `app.acme.in/managed-by=kubectl`|
+|`resources`|`list`|`[]`|Kubernetes resources to be delivered.|
 
 

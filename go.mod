@@ -4,9 +4,10 @@ go 1.17
 
 require (
 	cuelang.org/go v0.4.0
+	github.com/kylelemons/godebug v1.1.0
 	github.com/mercari/spanner-autoscaler v0.1.5
 	github.com/spf13/cobra v1.2.1
-	k8s.io/api v0.22.2
+	k8s.io/api v0.22.3
 	k8s.io/autoscaler/vertical-pod-autoscaler v0.9.2
 	k8s.io/ingress-gce v1.14.0
 )
@@ -42,7 +43,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/apimachinery v0.22.2 // indirect
+	k8s.io/apimachinery v0.22.3 // indirect
 	k8s.io/klog/v2 v2.9.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	sigs.k8s.io/controller-runtime v0.6.0 // indirect

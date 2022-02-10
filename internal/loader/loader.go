@@ -98,7 +98,7 @@ func New() (*Loader, error) {
 func (l *Loader) Load(inputs ...string) (*build.Instance, error) {
 	inst := load.Instances(inputs, &load.Config{
 		Overlay: l.overlays,
-	})[0] // TODO(slewiskelly): If instances > 1.
+	})[0]
 
 	return inst, inst.Err
 }

@@ -10,3 +10,8 @@
 - [pkg/delivery/stdout](pkg/delivery/stdout/stdout.md)
 - [pkg/k8s](pkg/k8s/k8s.md)
 - [pkg/kit](pkg/kit/kit.md)
+- [pkg/workflow/tasks](pkg/workflow/tasks/tasks.md)
+- [pkg/workflow/tasks/cmp](pkg/workflow/tasks/cmp/cmp.md)
+- [pkg/workflow/tasks/exec](pkg/workflow/tasks/exec/exec.md)
+- [pkg/workflow/tasks/fmt](pkg/workflow/tasks/fmt/fmt.md)
+- [pkg/workflow/tasks/os](pkg/workflow/tasks/os/os.md)

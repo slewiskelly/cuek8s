@@ -19,11 +19,13 @@ func New() *cobra.Command {
 	opts := new(options)
 
 	cmd := &cobra.Command{
-		Use:   "dump [-o FORMAT] INPUT...",
+		Use:   "dump [FLAGS] INPUT...",
 		Short: "Displays generated Kubernetes manifest configuration",
 		Long: `Displays generated Kubernetes manifest configuration
 
 Input(s) are the same as those of the ` + "`cue`" + ` tool. See ` + "`cue inputs`" + ` for more information.
+
+If specified, -d or --deliverables will filter resources for the specific deliverable(s).
 
 If specified, -k or --kind will filter resources by their kind.
 
@@ -36,6 +38,7 @@ Specifying both will filter resources by both kind and name.
 		},
 	}
 
+	cmd.Flags().StringSliceVarP(&opts.Deliverables, "deliverables", "d", nil, "Deliverable(s) to apply")
 	cmd.Flags().StringVarP(&opts.Format, "out", "o", "yaml", "output format (json|yaml)")
 	cmd.Flags().StringSliceVarP(&opts.Kinds, "kind", "k", nil, "Kubernetes resource kind(s) to list")
 	cmd.Flags().StringSliceVarP(&opts.Names, "name", "n", nil, "Kubernetes resource names(s) to list")
@@ -75,10 +78,11 @@ func run(args []string, opts *options) error {
 	}
 
 	cd, err := cuetil.FillPaths(ctx.CompileBytes(cueDump), map[string]interface{}{
-		"dump.inputs.format":   opts.Format,
-		"dump.inputs.kinds":    opts.Kinds,
-		"dump.inputs.names":    opts.Names,
-		"dump.inputs.delivery": v.LookupPath(cue.ParsePath("Delivery")),
+		"dump.inputs.deliverables": opts.Deliverables,
+		"dump.inputs.format":       opts.Format,
+		"dump.inputs.kinds":        opts.Kinds,
+		"dump.inputs.names":        opts.Names,
+		"dump.inputs.delivery":     v.LookupPath(cue.ParsePath("Delivery")),
 	})
 	if err != nil {
 		return err
@@ -95,9 +99,10 @@ func run(args []string, opts *options) error {
 }
 
 type options struct {
-	Format string `cue:"=~\"(json|yaml)\""`
-	Kinds  []string
-	Names  []string
+	Deliverables []string
+	Format       string `cue:"=~\"(json|yaml)\""`
+	Kinds        []string
+	Names        []string
 }
 
 var (
