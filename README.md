@@ -41,17 +41,6 @@ multiple) methods.
 
 A command line tool (`cuek8s`) is provided to interact with configurations.
 
-The eventual goal of this tool is to replace all functionality (and add more) to
-what is already provided via the commands in `cuek8s_tool.cue` (see below).
-
-The following commands are currently supported:
-- `doc`
-  - Displays or generates reference documentation
-- `dump`
-  - Displays generated Kubernetes manifest configuration
-- `list`
-  - Lists Kubernetes resources along with other metadata
-
 To build the tool:
 
 ```shell
@@ -63,23 +52,6 @@ and to see available commands and their usage:
 ```shell
 ./bin/cuek8s help
 ```
-
-## CUE Scripts
-
-The following commands are currently supported:
-- `apply`
-  - Deploys Kubernetes resources
-- `deliverables`
-  - Lists deliverables (a group of resources deployed as a single unit)
-- `dump`
-  - Displays generated Kubernetes manifest configuation
-- `list`
-  - Lists Kubernetes resources along with other metadata
-- `plan`
-  - Plans the deployment of Kubernetes resources
-
-See `cue commands` for more information about custom CUE commands, and
-`cue injection` for more information about injecting values.
 
 ### Local Environment
 
