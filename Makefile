@@ -29,3 +29,11 @@ trim:
 .PHONY: up
 up:
 	@cue up ./tools/...
+
+.PHONY: unity
+unity:
+	@unity test --staged
+
+.PHONY: unity-update
+unity-update:
+	@unity test --staged --update

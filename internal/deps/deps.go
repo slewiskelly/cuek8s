@@ -7,7 +7,8 @@
 package deps
 
 import (
-	_ "github.com/mercari/spanner-autoscaler/pkg/api/v1alpha1"
+	_ "github.com/cue-unity/unity"
+	_ "github.com/mercari/spanner-autoscaler/api/v1alpha1"
 	_ "k8s.io/api/apps/v1"
 	_ "k8s.io/api/autoscaling/v1"
 	_ "k8s.io/api/autoscaling/v2beta2"
